@@ -36,12 +36,11 @@ export default {
        class="todo__checkbox-label"></label>
       <span class="todo__item-text">{{ item.msg }}</span>
       <span class="material-symbols-outlined todo__delete-icon"
-      @click="deleteTodo(item.id)">delete
-        delete
-      </span>
+      @click="deleteTodo(item.id)">delete</span>
     </div>
     <!-- 할 일 목록이 없을 때 -->
-    <div v-if="computedTodo.length===0" class="todo__item--no" >
+     {{ computedTodo.length }}
+    <div v-if="computedTodo.length === 0" class="todo__item--no" >
       <p>할일 목록이 없습니다.</p>
     </div>
   </div>

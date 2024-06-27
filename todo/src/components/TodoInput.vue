@@ -5,10 +5,10 @@ export default {
             inputMsg:'',//데이터 정의
         };
     },
-    emits: ["addTodo"],
+    emits: ['addTodo'],
     methods: {
         addTodo() {
-           // console.log(this.inputMsg);할 일 출력
+            console.log(this.inputMsg);//할 일 출력
            this.$emit('addTodo',this.inputMsg);//부모 컴포넌트 이벤트 호출
             this.inputMsg = "";//입력 데이터 초기화
         },

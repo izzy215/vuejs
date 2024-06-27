@@ -1,8 +1,7 @@
 <script>
-import TodoHeader from '@/components/TodoHeader.vue';
-import TodoList from '@/components/TodoList.vue';
-import TodoInput from '@/components/TodoInput.vue';
-
+import TodoHeader from "@/components/TodoHeader.vue";
+import TodoList from "@/components/TodoList.vue";
+import TodoInput from "@/components/TodoInput.vue";
 export default {
   components: {
     TodoHeader,
@@ -27,12 +26,11 @@ export default {
   methods: {
     addTodo(inputMsg) {
       const item = {
-        id: Math.random(), //고유한 값
-        msg: inputMsg, //할 일 텍스트
-        completed: false,
+        id: Math.random(), // 고유한 값
+        msg: inputMsg, // 할 일 텍스트
+        completed: false, // 할 일 완료 여부
       };
       this.todo.push(item);
-      console.log(this.todo)
     },
     updateTab(tab) {
       this.current = tab;
@@ -42,24 +40,20 @@ export default {
     },
     updateTodo(id) {
       this.todo = this.todo.map((v) =>
-      v.id === id ? { ...v, completed: !v.completed } : v
+        v.id === id ? { ...v, completed: !v.completed } : v
       );
     },
-  }
-}
+  },
+};
 </script>
-
 <template>
   <div class="todo">
     <TodoHeader :current @update-tab="updateTab" />
     <TodoList
-    :computed-todo="computedTodo"
-    @delete-todo="deleteTodo"
-    @update-todo="updateTodo"/>
+      :computed-todo="computedTodo"
+      @delete-todo="deleteTodo"
+      @update-todo="updateTodo"
+    />
     <TodoInput @add-todo="addTodo" />
-
   </div>
 </template>
-
-<style scoped>
-</style>
