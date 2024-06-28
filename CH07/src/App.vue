@@ -18,29 +18,36 @@ import WatchEx5 from '@/components/WatchEx5.vue';
 import WatchEffectEx1 from '@/components/WatchEffectEx1.vue';
 import WatchPostEffectEx1 from '@/components/WatchPostEffectEx1.vue';
 
-export default {
-  components: {
-    //OpteionsApi,
-    //CompositionApi,
-    // DataEx1,
-    // DataEx2,
-   // DataEx3,
-    //RefEx1,
-    // RefEx2,
-    // ComputedEx1,
-    // ComputedEx3,
-    // ComputedEx4,
-    // MethodsEx1,
-    // WatchEx1,
-    // WatchEx2,
-    // WatchEx3,
-    // WatchEx4,
-    // WatchEx5,
-    // WatchEffectEx1,
-    WatchPostEffectEx1
-
-  },
+import LifeCycleHooks from '@/components/LifeCycleHooks.vue';
+import { ref } from 'vue';
+const showComponent = ref(true);
+const toggleComponent = () => {
+  showComponent.value = !showComponent.value;
 }
+
+//export default {
+  // components: {
+  //   //OpteionsApi,
+  //   //CompositionApi,
+  //   // DataEx1,
+  //   // DataEx2,
+  //  // DataEx3,
+  //   //RefEx1,
+  //   // RefEx2,
+  //   // ComputedEx1,
+  //   // ComputedEx3,
+  //   // ComputedEx4,
+  //   // MethodsEx1,
+  //   // WatchEx1,
+  //   // WatchEx2,
+  //   // WatchEx3,
+  //   // WatchEx4,
+  //   // WatchEx5,
+  //   // WatchEffectEx1,
+  //   // WatchPostEffectEx1
+
+  // },
+//}
 </script>
 
 <template>
@@ -61,7 +68,10 @@ export default {
      <!-- <WatchEx4></WatchEx4> -->
      <!-- <WatchEx5></WatchEx5> -->
      <!-- <WatchEffectEx1></WatchEffectEx1> -->
-     <WatchPostEffectEx1></WatchPostEffectEx1>
+     <!-- <WatchPostEffectEx1></WatchPostEffectEx1> -->
+
+     <LifeCycleHooks v-if="showComponent" />
+     <button @click="toggleComponent">Unmount Component</button>
 
 </template>
 
