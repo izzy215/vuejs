@@ -1,0 +1,602 @@
+
+  
+  var isInsertFormSubmitting = false;
+  var isUpdateFormSubmitting = false;
+  var isEnableInsert = false;
+  var clickYearMonthDay = "";
+  
+  $(document).ready(function(){
+      
+      init(); 
+      KeepSelectCondition();  // 검색조건 유지 
+      sbx_Onchange_deptAndMember(); // 부서,직원 셀렉트박스 변경 시, 자동 조회 
+      getTodayAddElement(); // 오늘 날짜 text 추가  
+      
+  });
+  
+  /* 초기화 */
+  function init(){
+      var isEnableInsert = false;
+      isInsertFormSubmitting = false;
+      isUpdateFormSubmitting = false;
+      clickYearMonthDay = "";
+      clearReport();  
+      
+      fn_setBtnMode("init");
+      
+  }
+  
+  /* validation */
+  function validateInput() {
+  
+      var form = "";
+      
+      if(fn_getBtnMode() == "insert"){
+         form = document.InsertFormVO;
+      } else if(fn_getBtnMode() == "update") {
+         form = document.FormVO;
+      }
+ 
+      
+      if(form.rptTitle.value == ""){
+          alert("금일 업무명을 입력하세요.");
+          return;
+      } 
+      
+      if(form.rptTitle.value.length <= 2 || form.rptTitle.value.length >= 100){
+          alert("금일 업무명은 3자이상 100자 이내로 입력하세요.");
+          return;
+      }
+      
+      if(form.rptContents.value == ""){
+          alert("금일 업무 내용을 입력하세요.");
+          return;
+      }
+      
+      if(form.rptContents.value.length <= 9 || form.rptContents.value.length >= 1000){
+          alert("금일 업무 내용은 10자 이상 1000자 이내로 입력하세요.");
+          return;
+      }
+      
+      if(form.tmrwTitle.value == ""){
+          alert("내일 업무명을 입력하세요.");
+        
+          return;
+      }
+      
+      if(form.tmrwTitle.value.length <= 2 || form.tmrwTitle.value.length >= 100){
+          alert("내일 업무명은 3자 이상 100자 이내로 입력하세요.");
+          return;
+      }
+      
+      if(form.tmrwContents.value == ""){
+          alert("내일 업무 계획을 입력하세요.");
+          return;
+      }
+      
+      if(form.tmrwContents.value.length <= 9 || form.tmrwContents.value.length >= 1000){
+          alert("내일 업무 계획을 10자 이상 1000자 이내로 입력하세요.");
+          return;
+      }
+      
+      
+      if(fn_getBtnMode() == "insert"){
+          fn_insertDailyReportSend(); 
+      } else if (fn_getBtnMode() == "update"){
+          fn_updateDailyReportSend(); 
+      }
+      
+      
+  };
+ 
+  
+  /* 검색조건 유지 */
+  function KeepSelectCondition(){
+      $("#selectSchDeptID > option[value="+''+ "]").attr("selected","selected");
+      $("#selectSchMberID > option[value="+''+ "]").attr("selected","selected");
+      var selectedText = $("#selectSchMberID").children('option:selected').text();
+      $('#selectedMberNm').text("(" + selectedText + ")");
+    
+  }
+  
+  /* 부서,직원 셀렉트박스 변경 시, 자동 조회 */  
+  function sbx_Onchange_deptAndMember(){
+      
+      $("#selectSchDeptID, #selectSchMberID").bind("change",function(){
+          $("#dailyReportVO").submit();
+      });
+  }
+  
+  /* 근태 현황 조회 */  
+  function fn_select(p_gubun) {
+      var schYearMonth;
+      var schYear = Number($("#schYear").val());
+      var schMonth = Number($("#schMonth").val());
+ 
+      if ( p_gubun == "PREV" ) {
+          if ( schMonth == 1 ) {
+              schMonth = 12;
+              schYear--;
+          } else {
+              schMonth--;             
+          }
+          
+      } else if ( p_gubun = "NEXT" ) {
+          if ( schMonth == 12 ) {
+              schMonth = 1;
+              schYear++;
+          } else {
+              schMonth++;
+          }
+      }
+      
+      if ( (schMonth+'').length == 1 ) {
+          schMonth = '0'+schMonth;
+      }
+      
+      $("#schYearMonth").val(schYear+(schMonth+''));
+      $("#dailyReportVO").submit();
+  }
+  
+  /* 상세 보기 */
+  function fn_getDailyReport(dateNum ,rptId, regMberId){
+      
+      if($('#insertRptBtn').hasClass('clicked')){
+          $('#insertRptBtn').removeClass('clicked')
+      };
+      
+      if($('#updateRptBtn').hasClass('clicked')){
+          $('#updateRptBtn').removeClass('clicked')
+      };
+      
+      if($('#deleteRptBtn').hasClass('clicked')){
+          $('#deleteRptBtn').removeClass('clicked')
+      };
+      
+      event.preventDefault();
+      
+      fn_selectDate(dateNum);
+      
+      $.ajax ({
+          type: 'GET', // POST 로 전송
+          contentType: "application/json",
+          cache:false,
+          url: "/cop/rpt/dailyReportDetail.do", // 호출 URL
+          data: {
+              rptId: rptId,
+              regMberId: regMberId
+          },
+          dataType: 'json',
+          success:function(response){
+              $('#getRptDetailArea').empty();
+
+              fn_getDailyReportAddElement(response);
+                           
+          },
+          error:function(e) {
+              alert("상세 조회에 실패하였습니다.");
+          }
+      });
+  }
+  
+  /* 상세 보기 동적 엘리먼트 추가 */
+  function fn_getDailyReportAddElement(response){
+      
+      if($('#insertRptBtn').hasClass('clicked')){
+          $('#insertRptBtn').removeClass('clicked')
+      };
+
+      if($('#updateRptBtn').hasClass('clicked')){
+          $('#updateRptBtn').removeClass('clicked')
+      };
+      
+      if($('#deleteRptBtn').hasClass('clicked')){
+          $('#deleteRptBtn').removeClass('clicked')
+      };
+      
+      insertRptBtn.disabled = true;
+      updateRptBtn.disabled = false;
+      deleteRptBtn.disabled = false;
+      let rptId = response.dailyReport.rptId;
+      let deptId = response.dailyReport.deptId;
+      let deptNm = response.dailyReport.deptNm;
+      let regMberId = response.dailyReport.regMberId;
+      let regMberNm = response.dailyReport.regMberNm;
+      let rptTitle = response.dailyReport.rptTitle;
+      let rptContents = response.dailyReport.rptContents;
+      let tmrwTitle = response.dailyReport.tmrwTitle;
+      let tmrwContents = response.dailyReport.tmrwContents;
+      
+      // ${rptTitle}
+      // JSP 백틱변수 `${}`
+      let htmlContent = `
+       <form name="FormVO" id="FormVO" action="/cop/rpt/updateDailyReport.do" method="post">
+            
+           <div id="memberInfo">
+           
+               <input id="deptNm" name="deptNm"
+               type="hidden" value="${deptNm}"
+               size="70" maxlength="50" disabled>
+               
+               <input id="memberNm" name="memberNm"
+                  type="text" value="${deptNm} ${regMberNm}"
+                  size="70" maxlength="50" disabled> 
+           </div>
+            <div id="rptTodayWork">
+              <h2>금일 업무</h2>
+            </div> 
+
+            
+            <div id="rptTodayContent">
+                <div id="rptTodayContentLeftStyle">
+                   <input id="rptTitle" name="rptTitle"
+                        type="text" value="${rptTitle}" placeholder ="업무명 입력"
+                        size="70" minlength="3" maxlength="100" spellcheck="false" disabled> 
+                        
+                   <textarea id="rptContents" name="rptContents"
+                        type="text" placeholder ="업무 내용 입력"
+                        size="70" minlength="10" maxlength="1000" spellcheck="false" disabled>${rptContents}</textarea>    
+                </div>
+            </div>
+    
+             <div id="rptTomorrowWork">
+                <h2>내일 계획</h2>
+             </div> 
+             <div id="rptTomorrowContent">
+                 <div id="rptTomorrowContentLeftStyle">   
+                    <input id="tmrwTitle" name="tmrwTitle"
+                         type="text" value="${tmrwTitle}" placeholder ="업무명 입력"
+                         size="70" minlength="3" maxlength="100" spellcheck="false" disabled>
+                    <textarea id="tmrwContents" name="tmrwContents"
+                         type="text" placeholder ="업무 내용 입력"
+                         size="70" minlength="10" maxlength="1000" spellcheck="false" disabled>${tmrwContents}</textarea>
+                    
+                    <input type="hidden" id="rptId" name="rptId"
+                         type="text" value="${rptId}" style="display:none">
+                    <input type="hidden" id="regMberId" name="regMberId" 
+                         type="text" value="${regMberId}">                 
+                    <input type="hidden" id="deptId" name="deptId" 
+                         type="text" value="${deptId}">    
+                    <input type="hidden" id="workingDate" name="workingDate" 
+                         type="text" value=""> </input>
+                         
+                 </div>
+             </div>
+         </form>
+        `;
+      $('#getRptDetailArea').append(htmlContent);
+       
+  }
+  
+  /* 금일 업무등록 사원 조회 */
+  function getWorkingDateMember(){
+ 
+      var regMberId = 23060102;
+      var yyMMdd= clickYearMonthDay;
+      $.ajax ({
+          type: 'GET', 
+          url: "/cop/rpt/getWorkingDateMember.do", // 호출 URL
+          data: {
+              workingDate: yyMMdd,
+              regMberId: regMberId
+          },
+          success:function(response){
+              isEnableInsert = response.insertStatus == 0 ? true : false;
+              
+              if(isEnableInsert){
+                  fn_insertDailyReport();
+              } else {
+                  alert('금일 등록된 업무가 존재합니다.');
+              }
+             
+          },
+          error:function(e) {
+              alert("금일 업무등록 사원 조회에 실패하였습니다.");
+          }
+      });
+  }
+  /* 등록 버튼 클릭 시 일간 업무 등록 폼 */
+  function fn_insertDailyReport() {
+      clearReport();
+      
+      isInsertFormSubmitting = true;
+      fn_setBtnMode("insert");
+         
+      // JSP 백틱변수 `${}`
+      let htmlContent = `  
+        <form name="InsertFormVO" id="InsertFormVO" action="/cop/rpt/insertDailyReport.do" method="post">
+            <div id="memberInfo">
+                <input id="deptNm" name="deptNm"
+                type="hidden" value="스마트금융사업부"
+                size="70" maxlength="30" disabled>
+                
+                <input id="memberNm" name="memberNm"
+                   type="text" value="스마트금융사업부 이지현"
+                   size="70" maxlength="10" disabled> 
+            </div>
+            <div id="rptTodayWork">
+              <h2>금일 업무</h2>
+            </div> 
+            <div id="rptTodayContent">
+    
+                <div id="rptTodayContentLeftStyle">
+                   
+                   <input id="rptTitle" name="rptTitle"
+                        type="text" value="" placeholder ="업무명 입력"
+                        size="70" required minlength="3" maxlength="100" spellcheck="false">
+      
+                   <textarea id="rptContents" name="rptContents"
+                        type="text" value="" placeholder ="업무 내용 입력"
+                        size="70" required minlength="10" maxlength="1000" spellcheck="false"></textarea>    
+    
+                </div>
+            </div>
+            
+            <div id="rptTomorrowWork">
+               <h2>내일 계획</h2>
+            </div> 
+            <div id="rptTomorrowContent">
+                <div id="rptTomorrowContentLeftStyle">
+         
+                   <input id="tmrwTitle" name="tmrwTitle"
+                        type="text" value="" placeholder ="업무명 입력"
+                        size="70" required minlength="3" maxlength="100" spellcheck="false" >
+          
+                   <textarea id="tmrwContents" name="tmrwContents"
+                        type="text" value="" placeholder ="업무 내용 입력"
+                        size="70" required minlength="10" maxlength="1000" spellcheck="false" ></textarea>
+               
+                   
+                   <input type="hidden" id="regMberId" name="regMberId" 
+                        type="text" value="23060102">                 
+                   <input type="hidden" id="deptId" name="deptId" 
+                        type="text" value="ORGNZT_0000000000025">    
+                   <input type="hidden" id="workingDate" name="workingDate" 
+                        type="text" value=""> </input>
+                        
+                </div>
+            </div>
+            
+            <button id="insertRptSendBtn" type="button" onclick="validateInput()">업무등록</button>
+        </form>
+        `;
+      
+       $('#insertArea').append(htmlContent);  
+  }
+  
+   /* 업무 등록시 송신 */
+   function fn_insertDailyReportSend(){
+
+      document.getElementById('workingDate').value = document.getElementById('hiddenDate').value;
+      isInsertFormSubmitting = false;
+      
+      $('#InsertFormVO').submit();
+      
+      alert("일간 업무가 등록되었습니다.");
+
+  } 
+ 
+  
+  /* 버튼모드 별 disabled 처리 */
+  function fn_setBtnMode(buttonMode){
+      
+      if(buttonMode == "init"){ 
+          insertRptBtn.disabled = true;
+          updateRptBtn.disabled = true;  
+          deleteRptBtn.disabled = true;
+      } else if(buttonMode == "insert"){
+          insertRptBtn.disabled = false;
+          updateRptBtn.disabled = true;  
+          deleteRptBtn.disabled = true;
+      } else if(buttonMode == "detail"){
+          insertRptBtn.disabled = true;
+          updateRptBtn.disabled = false;  
+          deleteRptBtn.disabled = false;
+      } else if(buttonMode == "update") {
+          insertRptBtn.disabled = true;
+          updateRptBtn.disabled = false;  
+          deleteRptBtn.disabled = true;
+      } else if(buttonMode == "delete"){
+          insertRptBtn.disabled = true;
+          updateRptBtn.disabled = true;  
+          deleteRptBtn.disabled = false;
+      } 
+  }
+  
+  /* 버튼 모드 출력 string */
+  function fn_getBtnMode(){
+      
+      var buttonMode = "";
+      if(insertRptBtn.disabled == true &&
+         updateRptBtn.disabled == true &&  
+         deleteRptBtn.disabled == true){  
+          buttonMode = "init";   
+      } else if (insertRptBtn.disabled == false &&
+                 updateRptBtn.disabled == true &&
+                 deleteRptBtn.disabled == true){
+          buttonMode = "insert";   
+      } else if(insertRptBtn.disabled == true &&
+                updateRptBtn.disabled == false &&  
+                deleteRptBtn.disabled == false){
+          buttonMode = "detail";
+      } else if(insertRptBtn.disabled == true &&
+                updateRptBtn.disabled == false && 
+                deleteRptBtn.disabled == true){
+          buttonMode = "update";
+      } else if(insertRptBtn.disabled == true &&
+                updateRptBtn.disabled == true &&  
+                deleteRptBtn.disabled == false){
+          buttonMode = "delete";
+      }
+      
+      return buttonMode;
+  }
+  
+  
+  /* 수정 버튼 클릭 시 일간 업무 수정 폼 */
+  function fn_updateDailyReport() {
+        
+      fn_setBtnMode("update");
+      
+      var inputId = $('#regMberId').val();
+    
+      if(23060102 != inputId){
+          alert("본인 업무외에는 수정할 수 없습니다.")
+          return;
+      }
+      
+      
+      insertRptBtn.disabled = true;
+      updateRptBtn.disabled = false;
+      deleteRptBtn.disabled = true;
+      
+      $('#rptTitle, #tmrwTitle').prop('disabled', false);
+      $('#rptContents, #tmrwContents').prop('disabled', false);
+      
+      if ($('#updateRptSendBtn').length === 0) {
+         
+          let updateBtnHtml = `
+              <button id="updateRptSendBtn" type="button" onclick="validateInput()">업무수정</button>
+          `;
+          $('#getRptDetailArea').append(updateBtnHtml);
+      }
+
+  }
+
+  /* 업무 수정 버튼 클릭시 송신 */
+  function fn_updateDailyReportSend() {
+      
+      document.getElementById('workingDate').value = document.getElementById('hiddenDate').value;
+      
+      $('#updateRptBtn').toggleClass('clicked');
+  
+      fn_submitForm('/cop/rpt/updateDailyReport.do');
+      
+      alert("일간 업무가 수정되었습니다.");
+  }
+  
+  // 삭제 버튼 클릭 시 삭제 처리 
+  function fn_deleteDailyReport() {
+      
+      $('#insertRptBtn').removeClass('clicked');
+      $('#updateRptBtn').removeClass('clicked');
+      $('#deleteRptBtn').addClass('clicked'); 
+         
+      var inputId = $('#regMberId').val();
+      
+      if(23060102 != inputId){
+          alert("본인 업무외에는 삭제할 수 없습니다.")
+          return;
+      }
+      
+      var confirmed = confirm("일간 업무를 삭제하시겠습니까?");
+      
+      if (confirmed) {
+          fn_submitForm('/cop/rpt/deleteDailyReport.do');
+          alert("일간 업무가 삭제되었습니다.");    
+      } else {
+          $('#deleteRptBtn').removeClass('clicked'); 
+      }
+
+  }
+  
+  function fn_submitForm(actionUrl) {
+      $('#FormVO').attr('action', actionUrl);
+      $('#FormVO').submit();
+  }
+
+  /* crud form clear 처리 */
+  function clearReport(){
+      $('#insertArea').empty();
+      $('#updateArea').empty();
+      $('#deleteArea').empty();
+      $('#getRptDetailArea').empty();
+  }
+  
+  /* 캘린더 날짜 클릭 */
+  function fn_selectDate(date){
+      clearReport();
+      
+      if($('#insertRptBtn').hasClass('clicked')){
+          $('#insertRptBtn').removeClass('clicked')
+      };
+      
+      if($('#updateRptBtn').hasClass('clicked')){
+          $('#updateRptBtn').removeClass('clicked')
+      };
+      
+      if($('#deleteRptBtn').hasClass('clicked')){
+          $('#deleteRptBtn').removeClass('clicked')
+      };
+      
+      if(date == '' || date == 'null' || date == undefined){
+          return;
+      }
+      
+    
+      insertRptBtn.disabled = false;
+      updateRptBtn.disabled = true;
+      deleteRptBtn.disabled = true;
+      
+      var schYear = Number($("#schYear").val());
+      var schMonth = Number($("#schMonth").val());
+
+      var day = getDayOfWeek(schYear, schMonth, date);
+      
+      document.getElementById('rptAreaDate').innerHTML = schMonth + "월 " + date + "일 " + day + "요일";
+      
+      if(schMonth < 10){
+          schMonth = '0' + schMonth;
+      } 
+      if(date < 10){
+          date = '0' + date;
+      }
+      
+      clickYearMonthDay = getClickYearMonthDay(schYear,schMonth,date);
+      
+      document.getElementById('hiddenDate').value = schYear + "" + schMonth + "" + date;
+  }
+  
+  function getClickYearMonthDay(schYear,schMonth,date){
+      return schYear + "" + schMonth + "" + date;
+  }
+  
+  /* 년월일로 요일 구하는 함수 */
+  function getDayOfWeek(year, month, day) {
+
+      // 월(month)은 0부터 시작하므로 입력된 month에서 1을 빼야 원하는 달이 나옴
+      var date = new Date(year, month - 1, day);
+      
+      // 요일을 숫자로 반환 (0: 일요일, 1: 월요일, 2: 화요일, 3: 수요일  4 : 목요일 5 : 금요일 6: 토요일)
+      var dayOfWeek = date.getDay();
+      
+      // 요일 int - > string
+      var days = ['일', '월', '화', '수', '목', '금', '토'];
+      var dayString = days[dayOfWeek];
+      
+      return dayString;
+  }
+  
+  /* 금일 계산 */
+  function getToday(){
+      var today = new Date();
+      var year = today.getFullYear();
+      var month = today.getMonth() + 1; // 월은 0부터 시작하므로 1을 더함
+      var date = today.getDate();
+      var day = today.getDay();
+
+      var daysOfWeek = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+      var dayName = daysOfWeek[day];
+
+      var formattedDate =  month + '월 ' + date + '일 ' + dayName; // n월 n일 n요일
+      return formattedDate;
+  }
+  
+  /* 오늘 날짜 text 추가  */
+  function getTodayAddElement(){
+      getToday();
+      document.getElementById('rptAreaDate').innerText = getToday(); 
+  }
+ 
+
+  
